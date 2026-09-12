@@ -1,3 +1,5 @@
+import concurrent.futures
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -19,8 +21,15 @@ period = st.sidebar.selectbox(
 
 @st.cache_data(ttl=3600)
 def load_data(ticker, period):
-    df = yf.Ticker(ticker).history(period=period)
-    return df
+    def fetch():
+        return yf.Ticker(ticker).history(period=period)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(fetch)
+            return future.result(timeout=8)
+    except Exception:
+        return pd.DataFrame()
 
 df = load_data(TICKER, period)
 
