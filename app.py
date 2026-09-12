@@ -1,7 +1,7 @@
-import concurrent.futures
+import datetime
 
 import streamlit as st
-import yfinance as yf
+import FinanceDataReader as fdr
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -9,25 +9,23 @@ st.set_page_config(page_title="SK하이닉스 주가 대시보드", layout="wide
 
 st.title("📈 SK하이닉스 주가 대시보드")
 
-# SK하이닉스 종목 코드: 000660.KS (코스피)
-TICKER = "000660.KS"
+# SK하이닉스 종목 코드 (KRX)
+TICKER = "000660"
+
+PERIOD_DAYS = {"1mo": 30, "3mo": 90, "6mo": 180, "1y": 365, "2y": 730}
 
 # 사이드바에서 기간 선택
 period = st.sidebar.selectbox(
     "조회 기간",
-    ["1mo", "3mo", "6mo", "1y", "2y"],
+    list(PERIOD_DAYS.keys()),
     index=2,
 )
 
 @st.cache_data(ttl=3600)
 def load_data(ticker, period):
-    def fetch():
-        return yf.Ticker(ticker).history(period=period)
-
+    start = datetime.date.today() - datetime.timedelta(days=PERIOD_DAYS[period])
     try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(fetch)
-            return future.result(timeout=8)
+        return fdr.DataReader(ticker, start)
     except Exception:
         return pd.DataFrame()
 
